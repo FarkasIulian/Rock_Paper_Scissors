@@ -1,8 +1,8 @@
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.Random;
 import java.util.Scanner;
 
+import static java.lang.System.console;
 import static java.lang.System.exit;
 
 enum Game {
@@ -18,7 +18,19 @@ enum Game {
 
 public class Main {
 
-    public static int citire_fisier(String path,String name) throws FileNotFoundException {
+    public static void remove_line(String line, String[] players) throws IOException {
+        FileWriter writer = new FileWriter("rating.txt");
+        String lineToRemove = line;
+        String currentLine;
+        for (int i = 0; i < players.length; i = i + 2) {
+            currentLine = players[i] + " " + players[i + 1];
+            if (currentLine.equals(lineToRemove)) continue;
+            writer.write(currentLine + "\n");
+        }
+        writer.close();
+    }
+
+    public static int read_file(String path, String name) throws IOException {
         Scanner file = new Scanner(new File("rating.txt"));
         String fisier = "";
         String[] players;
@@ -29,24 +41,37 @@ public class Main {
         for (int i = 0; i < players.length; i = i + 2)
             if (name.toLowerCase().equals(players[i].toLowerCase())) {
                 file.close();
+                remove_line(players[i] + " " + players[i + 1], players);
                 return Integer.parseInt(players[i + 1]);
             }
         file.close();
         return 0;
     }
 
-    public static Game getUser(String opt){
+    public static void write_file(String name, int score,boolean existed) throws IOException {
+        FileWriter writer = new FileWriter("rating.txt", true);
+        if(!existed)
+            writer.write("\n" + name + " " + score);
+        else
+            writer.write(name + " " + score);
+
+        writer.close();
+    }
+
+    public static Game getUser(String opt) {
         return Game.valueOf(opt.toUpperCase());
     }
-    public static Game getComputer(){
+
+    public static Game getComputer() {
         Random random = new Random();
         Game[] aux = Game.values();
         return aux[random.nextInt(3)];
     }
-    public static void main(String[] args) throws FileNotFoundException {
+
+    public static void main(String[] args) throws IOException {
         // write your code here
         Scanner scanner = new Scanner(System.in);
-        String option,name;
+        String option, name;
         Game user = null;
         Game computer;
         final int[][] solutions = {{0, -1, 1}, {1, 0, -1}, {-1, 1, 0}};
@@ -54,18 +79,19 @@ public class Main {
         System.out.println("Enter your name: ");
         name = scanner.nextLine();
         System.out.println("Hello, " + name);
-        score = citire_fisier("rating.txt",name);
+        score = read_file("rating.txt", name);
+        boolean exists = score == 0 ? false : true;
         while (true) {
             System.out.println("rock,paper,scissors,!rating or !exit: ");
             option = scanner.nextLine();
-            switch (option.toLowerCase()){
+            switch (option.toLowerCase()) {
                 case "rock":
                 case "paper":
                 case "scissors":
                     user = getUser(option);
                     computer = getComputer();
                     int opt = solutions[user.ordinal()][computer.ordinal()];
-                    switch (opt){
+                    switch (opt) {
                         case 1:
                             score += 100;
                             System.out.println("Well done you won. The computer chose " + computer.name().toLowerCase() + " and failed");
@@ -75,6 +101,7 @@ public class Main {
                             System.out.println("There is a draw " + computer.name().toLowerCase());
                             break;
                         case -1:
+                            score-=100;
                             System.out.println("Sorry you lost, but the computer chose " + computer.name().toLowerCase());
                             break;
                         default:
@@ -83,9 +110,10 @@ public class Main {
                     }
                     break;
                 case "!rating":
-                    System.out.println("Your rating: " +score);
+                    System.out.println("Your rating: " + score);
                     break;
                 case "!exit":
+                    write_file(name, score,exists);
                     scanner.close();
                     exit(0);
                 default:
